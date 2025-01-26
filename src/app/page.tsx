@@ -1,7 +1,22 @@
+"use client";
+
 import Image from "next/image";
 import styles from "./page.module.css";
+import { useState } from "react";
 
 export default function Home() {
+  const [frameUrl, setFrameUrl] = useState('');
+
+  const handleFrameLoad = async () => {
+    try {
+      // Deployed frame URL with trailing slash
+      const url = 'https://frames-v2-demo-lilac.vercel.app/';
+      setFrameUrl(url);
+    } catch (error) {
+      console.error('Error loading frame:', error);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
@@ -13,12 +28,26 @@ export default function Home() {
           height={38}
           priority
         />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+
+        <div className={styles.frameContainer}>
+          <button 
+            onClick={handleFrameLoad}
+            className={styles.loadFrameButton}
+          >
+            Load Frame
+          </button>
+          
+          {frameUrl && (
+            <iframe
+              src={frameUrl}
+              width="424"
+              height="695"
+              className={styles.frameIframe}
+              allow="microphone; camera; clipboard-write; web-share"
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
+          )}
+        </div>
 
         <div className={styles.ctas}>
           <a
