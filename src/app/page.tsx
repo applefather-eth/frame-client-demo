@@ -15,9 +15,10 @@ import {
   ReadyOptions,
 } from '@farcaster/frame-host';
 import { useMessageHandler } from '../hooks/useMessageHandler';
-import { useAccount, useEnsName, WagmiProvider } from 'wagmi'
+import { useAccount, useConnectors, useSendTransaction } from 'wagmi'
 import { config } from "./config";
-
+import { getChainId, switchChain } from '@wagmi/core'
+import { base, mainnet, sepolia } from 'wagmi/chains'
  
 
 const DEFAULT_FRAME_URL = 'https://www.palettes.fun/';//'https://frames-v2-demo-lilac.vercel.app/';
@@ -31,23 +32,50 @@ export default function Home() {
   const [debug] = useState(true);
   const [frameVisible, setFrameVisible] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { data: hash, sendTransaction } = useSendTransaction()
 
+  let connectFunc;
+  let acctFunc;
 
-  
   const walletProvider = useMemo(() => {
     return {
       request: async (...args: any[]) => {
         if (args[0].method === 'eth_requestAccounts') {
+          console.log('Frame Host: returned address', address);
           return [address];
         }
-        console.log('Frame Host: instrumentedProvider request', args);
-        return [];
+        if (args[0].method === 'eth_chainId') {
+          const currentChainId = getChainId(config);
+          console.log('Frame Host: returned chainId', currentChainId);
+          return base.id;
+        }
+        if (args[0].method === 'wallet_switchEthereumChain') {
+          await switchChain(config, { chainId: args[0].params[0].chainId })
+        }
+        if (args[0].method === 'eth_sendTransaction') {
+          const tx = await sendTransaction({
+            to: args[0].params[0].to,
+            value: args[0].params[0].value,
+            data: args[0].params[0].data,
+          })
+          return hash;
+        }
       },
       on: async (...args: any[]) => {
-        console.log('Frame Host: instrumentedProvider on', args);
+        switch(args[0]){
+          case 'connect':
+            connectFunc = args[1];
+            connectFunc(address);
+            break;
+            case 'accountsChanged': 
+            acctFunc = args[1];
+            acctFunc([address]);
+            break;
+        }
+        
       },
       removeListener: async (...args: any[]) => {
-        console.log('Frame Host: instrumentedProvider removeListener', args);
+        console.log('Frame Host: wallet provider removeListener', args);
       },
     };
   }, []);
@@ -55,24 +83,13 @@ export default function Home() {
   // Wire up the iframe to the endpoint
   useEffect(() => {
     if(frameVisible){
-        iframeRef!.current!.onload = () => {
-        const newEndpoint = createIframeEndpoint({
-          iframe: iframeRef.current!,
-          targetOrigin: new URL(DEFAULT_FRAME_URL).origin,
-          
-          debug,
-        });
-        console.log('newEndpoint', newEndpoint);
-        if (newEndpoint) {
-          setEndpoint(newEndpoint);
-          newEndpoint.emit?.({
-            event: 'frame_added',
-          });
-        } else {
-          console.error('newEndpoint is undefined or invalid');
-        }
-        handleAddFrame();
-      };
+      const newEndpoint = createIframeEndpoint({
+        iframe: iframeRef.current!,
+        targetOrigin: new URL(DEFAULT_FRAME_URL).origin,
+        
+        debug,
+      });
+      setEndpoint(newEndpoint);
     }
   }, [frameVisible]);
 
@@ -127,7 +144,7 @@ export default function Home() {
         event: 'frame_added',
       });
       console.log('Frame Host: frame_added');
-      sdk.ready();
+
       return Promise.resolve<AddFrame.AddFrameResult>({});
   }, [endpoint, emit]);
 
