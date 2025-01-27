@@ -186,7 +186,7 @@ export default function Home() {
     endpoint,
     sdk,
     frameOrigin: '*',
-    ethProvider: walletProvider,
+    ethProvider: walletProvider as any,
     debug,
   });
 
