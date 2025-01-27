@@ -15,27 +15,51 @@ import {
   ReadyOptions,
 } from '@farcaster/frame-host';
 import { useMessageHandler } from '../hooks/useMessageHandler';
+import { useAccount, useEnsName, WagmiProvider } from 'wagmi'
+import { config } from "./config";
+
+ 
+
+const DEFAULT_FRAME_URL = 'https://www.palettes.fun/';//'https://frames-v2-demo-lilac.vercel.app/';
 
 
-const DEFAULT_FRAME_URL = 'https://frames-v2-demo-lilac.vercel.app/';
 
 export default function Home() {
+  const { address } = useAccount()
   const [frameUrl, setFrameUrl] = useState<string | null>(DEFAULT_FRAME_URL);
   const [endpoint, setEndpoint] = useState<HostEndpoint | undefined>(undefined);
   const [debug] = useState(true);
   const [frameVisible, setFrameVisible] = useState(false);
-
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  
 
+
+  
+  const walletProvider = useMemo(() => {
+    return {
+      request: async (...args: any[]) => {
+        if (args[0].method === 'eth_requestAccounts') {
+          return [address];
+        }
+        console.log('Frame Host: instrumentedProvider request', args);
+        return [];
+      },
+      on: async (...args: any[]) => {
+        console.log('Frame Host: instrumentedProvider on', args);
+      },
+      removeListener: async (...args: any[]) => {
+        console.log('Frame Host: instrumentedProvider removeListener', args);
+      },
+    };
+  }, []);
+
+  // Wire up the iframe to the endpoint
   useEffect(() => {
     if(frameVisible){
-      
-
-      iframeRef!.current!.onload = () => {
+        iframeRef!.current!.onload = () => {
         const newEndpoint = createIframeEndpoint({
           iframe: iframeRef.current!,
           targetOrigin: new URL(DEFAULT_FRAME_URL).origin,
+          
           debug,
         });
         console.log('newEndpoint', newEndpoint);
@@ -53,7 +77,7 @@ export default function Home() {
   }, [frameVisible]);
 
   const ready = useCallback(async () => {
-    if (frameVisible && endpoint) {
+    if (endpoint) {
       return true;
     }
     return false;
@@ -72,28 +96,28 @@ export default function Home() {
   };
   
   const handleReady = (options?: Partial<ReadyOptions>) => {
-    console.log('ready', options);
+    console.log('Frame Host: ready', options);
   };
 
   const handleSetPrimaryButton = () => {
-    console.log('setPrimaryButton');
+    console.log('Frame Host: setPrimaryButton');
   };
 
   const handleProviderRequest = async ({ method, params }: { method: string; params?: any[] }) => {
-    console.log('providerRequest', method, params);
+    console.log('Frame Host: providerRequest', method, params);
     return [] as const; // Return empty array for now as placeholder
   };
 
   const handleSignIn = () => {
-    console.log('signIn');
+    console.log('Frame Host: signIn');
   };
 
   const handleOpenUrl = (url: string) => {
-    console.log('openUrl', url);
+    console.log('Frame Host: openUrl', url);
   };
 
   const handleViewProfile = () => {
-    console.log('viewProfile');
+    console.log('Frame Host: viewProfile');
   };
 
   const emit = useMemo(() => endpoint?.emit, [endpoint?.emit]);
@@ -102,9 +126,9 @@ export default function Home() {
     emit?.({
         event: 'frame_added',
       });
-      console.log('frame_added');
+      console.log('Frame Host: frame_added');
+      sdk.ready();
       return Promise.resolve<AddFrame.AddFrameResult>({});
-
   }, [endpoint, emit]);
 
   const sdk = useMemo<Omit<FrameHost, 'ethProviderRequestV2'>>(
@@ -125,6 +149,7 @@ export default function Home() {
       ready: ready,
       setPrimaryButton: handleSetPrimaryButton,
       ethProviderRequest: async () => {
+        console.log('ethProviderRequest');
         throw new Error('not implemented');
       },
       signIn: async () => ({ 
@@ -135,13 +160,16 @@ export default function Home() {
       addFrame: handleAddFrame,
       viewProfile: async () => {},
       eip6963RequestProvider: () => {
+        console.log('eip6963RequestProvider');
       },
     }),[frameVisible]
   );
+
   useExposeToEndpoint({
     endpoint,
     sdk,
     frameOrigin: '*',
+    ethProvider: walletProvider,
     debug,
   });
 
