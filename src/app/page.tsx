@@ -15,18 +15,17 @@ import {
   ReadyOptions,
 } from '@farcaster/frame-host';
 import { useMessageHandler } from '../hooks/useMessageHandler';
-import { useAccount, useConnectors, useSendTransaction } from 'wagmi'
+import { useAccount, useConnectors, useSendTransaction, useSignMessage } from 'wagmi'
 import { config } from "./config";
 import { getChainId, switchChain } from '@wagmi/core'
 import { base, mainnet, sepolia } from 'wagmi/chains'
- 
+import { User, useSignIn } from '../contexts/SignInProvider';
 
 const DEFAULT_FRAME_URL = 'https://www.palettes.fun/';//'https://frames-v2-demo-lilac.vercel.app/';
 
-
-
 export default function Home() {
   const { address } = useAccount()
+  const { signMessage } = useSignMessage();
   const [frameUrl, setFrameUrl] = useState<string | null>(DEFAULT_FRAME_URL);
   const [endpoint, setEndpoint] = useState<HostEndpoint | undefined>(undefined);
   const [debug] = useState(true);
@@ -104,9 +103,9 @@ export default function Home() {
     fid: 1032478023498,
     username: 'test',
     displayName: 'test',
-    pfp: { url: 'https://picsum.photos/200/300' },
+    pfpUrl: 'https://picsum.photos/200/300',
     profile: { location: 'test' },
-  };
+  } as User;
 
   const onClose = () => {
     console.log('onClose');
@@ -125,9 +124,28 @@ export default function Home() {
     return [] as const; // Return empty array for now as placeholder
   };
 
-  const handleSignIn = () => {
-    console.log('Frame Host: signIn');
-  };
+  const { signIn } = useSignIn();
+  const handleSignIn = useCallback<FrameHost['signIn']>(
+    async (options) => {
+      const result = await signIn({
+        name: 'Test Frame',
+        domain: new URL(frameUrl || DEFAULT_FRAME_URL).hostname,
+        uri: frameUrl || DEFAULT_FRAME_URL,
+        options,
+        // We are already in a portal. this is a Warpcast method, we might not need this.
+        renderInPortal: false,
+        currentUser: {
+          fid: currentUser.fid,
+          username: currentUser.username,
+          displayName: currentUser.displayName,
+          pfpUrl: currentUser.pfpUrl,
+        },
+      });
+
+      return result;
+    },
+    [signIn, frameUrl, currentUser]
+  );
 
   const handleOpenUrl = (url: string) => {
     console.log('Frame Host: openUrl', url);
@@ -155,7 +173,7 @@ export default function Home() {
           fid: currentUser.fid,
           username: currentUser.username,
           displayName: currentUser.displayName,
-          pfpUrl: currentUser.pfp?.url,
+          pfpUrl: currentUser.pfpUrl,
         },
         client: {
           clientFid: 9152,
@@ -169,10 +187,7 @@ export default function Home() {
         console.log('ethProviderRequest');
         throw new Error('not implemented');
       },
-      signIn: async () => ({ 
-        message: 'Test message',
-        signature: '0x123',
-      }),
+      signIn: handleSignIn,
       openUrl: handleOpenUrl,
       addFrame: handleAddFrame,
       viewProfile: async () => {},
