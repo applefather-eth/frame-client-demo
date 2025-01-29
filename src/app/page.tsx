@@ -100,8 +100,8 @@ export default function Home() {
   }, [frameVisible, endpoint]);
 
   const currentUser = {
-    fid: 1032478023498,
-    username: 'test',
+    fid: 864289,
+    username: 'test-user',
     displayName: 'test',
     pfpUrl: 'https://picsum.photos/200/300',
     profile: { location: 'test' },
