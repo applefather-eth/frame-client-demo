@@ -98,7 +98,6 @@ export default function Home() {
     }
     return false;
   }, [frameVisible, endpoint]);
-
   const currentUser = {
     fid: 864289,
     username: 'test-user',

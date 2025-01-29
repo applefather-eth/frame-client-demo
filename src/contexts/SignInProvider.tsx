@@ -3,7 +3,13 @@
 import React, { useCallback, useMemo, useState, createContext, useContext } from 'react';
 import { SignIn, SignInOptions } from '@farcaster/frame-core';
 import { useAccount, useSignMessage } from 'wagmi';
-import { getAddress } from 'viem';
+import { getAddress, verifyMessage } from 'viem';
+import { createWalletClient, viemConnector } from '@farcaster/auth-client';
+
+const walletClient = createWalletClient({
+  relay: 'https://relay.farcaster.xyz',
+  ethereum: viemConnector(),
+});
 
 export type User = {
   fid: number;
@@ -40,45 +46,54 @@ export const useSignIn = () => useContext(SignInContext);
 export const SignInProvider: React.FC<SignInProviderProps> = ({ children }) => {
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const walletClient = useMemo(() => createWalletClient({
+    relay: 'https://relay.farcaster.xyz',
+    ethereum: viemConnector(),
+  }), []);
 
   const signIn = useCallback(async (params: SignInParams) => {
     if (!address) throw new Error('No wallet connected');
     
     const { domain, uri, options, currentUser } = params;
     
-    // Create SIWE message according to FIP-11 spec
-    const message = [
-      `${domain} wants you to sign in with your Ethereum account:`,
-      address,
-      '',
-      'Farcaster Auth',
-      '',
-      `URI: ${uri}`,
-      'Version: 1',
-      'Chain ID: 10',
-      `Nonce: ${options.nonce || Math.random().toString(36).slice(2)}`,
-      `Issued At: ${new Date().toISOString()}`,
-      options.expirationTime ? `Expiration Time: ${new Date(options.expirationTime).toISOString()}` : '',
-      options.notBefore ? `Not Before: ${new Date(options.notBefore).toISOString()}` : '',
-      '',
-      'Resources:',
-      `- farcaster://fids/${currentUser.fid}`,
-    ].filter(Boolean).join('\n');
+    console.log("Frame host received params for signIn:", params);
+    
+    // Build the SIWE message directly
+    const { siweMessage, message } = walletClient.buildSignInMessage({
+      address: getAddress(address),
+      fid: currentUser.fid,
+      uri,
+      domain,
+      nonce: options.nonce,
+    });
 
-    console.log('Signing SIWF message:', message);
+    console.log('message:', message);
+    console.log('SIWE message:', siweMessage);
+
     try {
-      const signature = await signMessageAsync({ message });
+        const signature = await signMessageAsync({ message });
+      console.log('Signature:', signature);
+
+      // Verify the signature matches the message and address
+      const isValid = await verifyMessage({
+        message,
+        signature,
+        address: getAddress(address),
+      });
+
+      if (!isValid) {
+        throw new Error('Invalid signature');
+      }
 
       return {
         message,
         signature,
-        fid: currentUser.fid,
       };
     } catch (error) {
       console.error('SIWF failed:', error);
       throw error;
     }
-  }, [address, signMessageAsync]);
+  }, [address, signMessageAsync, walletClient]);
 
   const contextValue = useMemo(
     () => ({
