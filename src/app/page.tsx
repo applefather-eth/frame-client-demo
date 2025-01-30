@@ -22,11 +22,18 @@ import { base, mainnet, sepolia } from 'wagmi/chains'
 import { User, useSignIn } from '../contexts/SignInProvider';
 
 const DEFAULT_FRAME_URL = 'https://www.palettes.fun/';//'https://frames-v2-demo-lilac.vercel.app/';
-
+const DEFAULT_FID = 1;
 export default function Home() {
   const { address } = useAccount()
   const { signMessage } = useSignMessage();
   const [frameUrl, setFrameUrl] = useState<string | null>(DEFAULT_FRAME_URL);
+  const [fid, setFid] = useState<number | null>(DEFAULT_FID);
+  const [currentUser, setCurrentUser] = useState<User>({
+    fid: fid || 0,
+    username: 'test-user',
+    displayName: 'test',
+    pfpUrl: 'https://picsum.photos/200/300',
+  });
   const [endpoint, setEndpoint] = useState<HostEndpoint | undefined>(undefined);
   const [debug] = useState(true);
   const [frameVisible, setFrameVisible] = useState(false);
@@ -92,19 +99,19 @@ export default function Home() {
     }
   }, [frameVisible]);
 
+  useEffect(() => {
+    setCurrentUser(prevUser => ({
+      ...prevUser,
+      fid: fid || 0
+    }));
+  }, [fid]);
+
   const ready = useCallback(async () => {
     if (endpoint) {
       return true;
     }
     return false;
   }, [frameVisible, endpoint]);
-  const currentUser = {
-    fid: 864289,
-    username: 'test-user',
-    displayName: 'test',
-    pfpUrl: 'https://picsum.photos/200/300',
-    profile: { location: 'test' },
-  } as User;
 
   const onClose = () => {
     console.log('onClose');
@@ -147,7 +154,7 @@ export default function Home() {
   );
 
   const handleOpenUrl = (url: string) => {
-    console.log('Frame Host: openUrl', url);
+    window.open(url, '_blank');
   };
 
   const handleViewProfile = () => {
@@ -175,7 +182,7 @@ export default function Home() {
           pfpUrl: currentUser.pfpUrl,
         },
         client: {
-          clientFid: 9152,
+          clientFid: fid || 0,
           added: true,
         },
       },
@@ -215,6 +222,15 @@ export default function Home() {
               setFrameUrl(e.target.value);
             }}
             placeholder="Enter frame URL" 
+            className={`${styles.urlInput} ${styles.customInput}`}
+          />
+          <input 
+            type="text" 
+            value={fid || ''}
+            onChange={(e) => {
+              setFid(parseInt(e.target.value));
+            }}
+            placeholder="Enter FID" 
             className={`${styles.urlInput} ${styles.customInput}`}
           />
           

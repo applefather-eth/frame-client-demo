@@ -185,3 +185,39 @@
     filter: invert();
   }
 }
+
+.urlContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 24px;
+}
+
+.customInput {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.customInput:focus {
+  outline: none;
+  border-color: #0070f3;
+  box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .customInput {
+    background: var(--gray-alpha-100);
+    border-color: var(--gray-alpha-200);
+    color: white;
+  }
+  
+  .customInput:focus {
+    border-color: #0070f3;
+  }
+}
