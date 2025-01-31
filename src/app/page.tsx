@@ -21,13 +21,17 @@ import { getChainId, switchChain } from '@wagmi/core'
 import { base, mainnet, sepolia } from 'wagmi/chains'
 import { User, useSignIn } from '../contexts/SignInProvider';
 
-const DEFAULT_FRAME_URL = 'https://www.palettes.fun/';//'https://frames-v2-demo-lilac.vercel.app/';
-const DEFAULT_FID = 1;
+const DEFAULT_FRAME_URL = "https://www.caststorage.com" // 'https://www.palettes.fun/';//'https://frames-v2-demo-lilac.vercel.app/';
+const DEFAULT_FID = 864289;
 export default function Home() {
   const { address } = useAccount()
   const { signMessage } = useSignMessage();
   const [frameUrl, setFrameUrl] = useState<string | null>(DEFAULT_FRAME_URL);
   const [fid, setFid] = useState<number | null>(DEFAULT_FID);
+  const [isConnectFlow, setIsConnectFlow] = useState(false);
+  const [walletAddress, setWalletAddress] = useState('');
+  const [channelUrl, setChannelUrl] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User>({
     fid: fid || 0,
     username: 'test-user',
@@ -39,6 +43,7 @@ export default function Home() {
   const [frameVisible, setFrameVisible] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { data: hash, sendTransaction } = useSendTransaction()
+  const [isSignInComplete, setIsSignInComplete] = useState(false);
 
   let connectFunc;
   let acctFunc;
@@ -133,12 +138,15 @@ export default function Home() {
   const { signIn } = useSignIn();
   const handleSignIn = useCallback<FrameHost['signIn']>(
     async (options) => {
+      if (isSignInComplete) {
+        return { message: '', signature: '0x' };
+      }
+
       const result = await signIn({
         name: 'Test Frame',
         domain: new URL(frameUrl || DEFAULT_FRAME_URL).hostname,
         uri: frameUrl || DEFAULT_FRAME_URL,
         options,
-        // We are already in a portal. this is a Warpcast method, we might not need this.
         renderInPortal: false,
         currentUser: {
           fid: currentUser.fid,
@@ -146,11 +154,18 @@ export default function Home() {
           displayName: currentUser.displayName,
           pfpUrl: currentUser.pfpUrl,
         },
+        isConnectFlow,
+        walletAddress: isConnectFlow ? walletAddress : address,
+        onChannelCreated: (url: string) => {
+          setChannelUrl(url);
+          setIsModalOpen(true);
+        },
       });
 
+      setIsSignInComplete(true);
       return result;
     },
-    [signIn, frameUrl, currentUser]
+    [signIn, frameUrl, currentUser, isConnectFlow, isSignInComplete, walletAddress, address]
   );
 
   const handleOpenUrl = (url: string) => {
@@ -233,7 +248,26 @@ export default function Home() {
             placeholder="Enter FID" 
             className={`${styles.urlInput} ${styles.customInput}`}
           />
+          <label className={styles.toggleContainer}>
+            <span>Connect Flow</span>
+            <input
+              type="checkbox"
+              checked={isConnectFlow}
+              onChange={(e) => setIsConnectFlow(e.target.checked)}
+              className={styles.toggleInput}
+            />
+          </label>
           
+          {isConnectFlow && (
+            <input 
+              type="text" 
+              value={walletAddress}
+              onChange={(e) => setWalletAddress(e.target.value)}
+              placeholder="Enter ETH wallet address" 
+              className={`${styles.urlInput} ${styles.customInput}`}
+            />
+          )}
+
           {!frameVisible && (
             <button 
               onClick={() => setFrameVisible(true)}
@@ -254,6 +288,25 @@ export default function Home() {
       </header>
 
       <main className={styles.main}>
+        {isModalOpen && channelUrl && (
+          <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+              <h3>Connect with Warpcast</h3>
+              <p>Scan this QR code or click the link to connect:</p>
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(channelUrl)}`}
+                alt="QR Code"
+                className={styles.qrCode}
+              />
+              <a href={channelUrl} target="_blank" rel="noopener noreferrer" className={styles.channelLink}>
+                Open Link
+              </a>
+              <button onClick={() => setIsModalOpen(false)} className={styles.closeButton}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
         <div className={styles.frameContainer}>
           <div>
             <h3>Frame Content</h3>

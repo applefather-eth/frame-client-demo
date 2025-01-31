@@ -11,7 +11,7 @@
   align-items: center;
   justify-items: center;
   min-height: 100svh;
-  padding: 80px;
+  padding: 120px 80px 80px 80px;
   gap: 64px;
   font-family: var(--font-geist-sans);
 }
@@ -219,5 +219,151 @@
   
   .customInput:focus {
     border-color: #0070f3;
+  }
+}
+
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.toggleInput {
+  width: 40px;
+  height: 20px;
+  appearance: none;
+  background: #e5e7eb;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggleInput:checked {
+  background: #0070f3;
+}
+
+.toggleInput::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  background: white;
+  transition: transform 0.3s ease;
+}
+
+.toggleInput:checked::before {
+  transform: translateX(20px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toggleContainer {
+    border-color: var(--gray-alpha-200);
+  }
+  
+  .toggleInput {
+    background: var(--gray-alpha-200);
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.modal h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.modal p {
+  margin: 0;
+  text-align: center;
+  color: #666;
+}
+
+.qrCode {
+  width: 200px;
+  height: 200px;
+  border-radius: 8px;
+}
+
+.channelLink {
+  color: #0070f3;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid #0070f3;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.channelLink:hover {
+  background: #0070f3;
+  color: white;
+}
+
+.closeButton {
+  padding: 8px 16px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.closeButton:hover {
+  background: #e5e7eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .modal p {
+    color: #999;
+  }
+
+  .closeButton {
+    background: #333;
+    color: white;
+  }
+
+  .closeButton:hover {
+    background: #444;
   }
 }

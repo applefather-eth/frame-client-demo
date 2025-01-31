@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useState, createContext, useContext } from
 import { SignIn, SignInOptions } from '@farcaster/frame-core';
 import { useAccount, useSignMessage } from 'wagmi';
 import { getAddress, verifyMessage } from 'viem';
-import { createWalletClient, viemConnector } from '@farcaster/auth-client';
+import { createAppClient, createWalletClient, viemConnector } from '@farcaster/auth-client';
 
 const walletClient = createWalletClient({
   relay: 'https://relay.farcaster.xyz',
@@ -25,6 +25,9 @@ type SignInParams = {
   options: SignInOptions;
   renderInPortal?: boolean;
   currentUser: User;
+  isConnectFlow: boolean;
+  walletAddress?: string;
+  onChannelCreated?: (url: string) => void;
 };
 
 export type SignInContextValue = {
@@ -51,56 +54,131 @@ export const SignInProvider: React.FC<SignInProviderProps> = ({ children }) => {
     ethereum: viemConnector(),
   }), []);
 
+  const appClient = createAppClient({
+    relay: 'https://relay.farcaster.xyz',
+    ethereum: viemConnector(),
+  });
+
+
   const signIn = useCallback(async (params: SignInParams) => {
-    if (!address) throw new Error('No wallet connected');
+    if (!address && !params.walletAddress) throw new Error('No wallet connected');
     
-    const { domain, uri, options, currentUser } = params;
+    const { domain, uri, options, currentUser, isConnectFlow, onChannelCreated, walletAddress } = params;
     
     console.log("Frame host received params for signIn:", params);
     
-    // Build the SIWE message directly
+    const effectiveAddress = walletAddress || (address as string) || '0x0000000000000000000000000000000000000000';
+    
     const { siweMessage, message } = walletClient.buildSignInMessage({
-      address: getAddress(address),
+      address: getAddress(effectiveAddress),
       fid: currentUser.fid,
       uri,
       domain,
       nonce: options.nonce,
     });
 
-    console.log('message:', message);
-    console.log('SIWE message:', siweMessage);
-
-    try {
-        const signature = await signMessageAsync({ message });
-      console.log('Signature:', signature);
-
-      // Verify the signature matches the message and address
-      const isValid = await verifyMessage({
-        message,
-        signature,
-        address: getAddress(address),
+    if (isConnectFlow) {
+    // Create a Farcaster Auth relay channel.
+    // Returns a secret token identifying the channel, and a URI to display to the end user as a link or QR code.
+      const channel = await appClient.createChannel({
+        siweUri: uri,
+        domain: domain,
+        nonce: options.nonce,
+        notBefore: options.notBefore,
+        expirationTime: options.expirationTime,
       });
+      console.log("created channel for connect flow: ", channel);
 
-      if (!isValid) {
-        throw new Error('Invalid signature');
+      if (onChannelCreated) {
+        onChannelCreated(channel.data.url);
       }
 
-      return {
-        message,
-        signature,
-      };
-    } catch (error) {
-      console.error('SIWF failed:', error);
-      throw error;
-    }
-  }, [address, signMessageAsync, walletClient]);
+      console.log('channel url: ', channel.data.url);
+      let signature: `0x${string}` | undefined;
+      let message: string | undefined;
+      
+      const status = await appClient.watchStatus({
+        channelToken: channel.data.channelToken,
+        timeout: 60_000,
+        interval: 1_000,
+        onResponse: ({ response, data }) => {
+          console.log('Response code:', response.status);
+          console.log('Status data:', data);
+          if (data.state === 'completed' && data.signature) {
+            signature = data.signature as `0x${string}`;
+            message = data.message;
+            console.log("completed polling: ", signature);
+            console.log("completed polling message: ", message);
 
-  const contextValue = useMemo(
-    () => ({
-      signIn,
-    }),
-    [signIn],
-  );
+            return true; // Stop polling
+          }
+          return false;
+        },
+      });
+
+      console.log("connected message: ", message);
+      console.log('SIWE message:', siweMessage);
+
+      if (!signature || !message) {
+        throw new Error('No signature or message received');
+      }
+
+      console.log("did it get here before success?", signature);
+
+
+      // const { success } = await appClient.verifySignInMessage({
+      //   nonce: options.nonce,
+      //   domain: domain,
+      //   message: message,
+      //   signature: signature,
+      // });
+
+      // console.log("did it get here after success?", success);
+
+      // if (!success) {
+      //   throw new Error('Failed to verify signature');
+      // }
+
+      return {
+        message: message || "",
+        signature: signature,
+      };
+
+    } else {
+      // sign in flow for accounts created natively on the frame host
+      try {
+        const signature = await signMessageAsync({ message });
+        console.log('Signature:', signature);
+
+        // Verify the signature matches the message and address
+        const isValid = await verifyMessage({
+          message,
+          signature,
+          address: getAddress(address as string),
+        });
+
+        if (!isValid) {
+          throw new Error('Invalid signature');
+        }
+
+        return {
+          message,
+          signature,
+        };
+      } catch (error) {
+        console.error('SIWF failed:', error);
+        throw error;
+        }
+      }
+    }, [address, signMessageAsync, walletClient]);
+
+
+    const contextValue = useMemo(
+      () => ({
+        signIn,
+      }),
+      [signIn],
+    );
 
   return (
     <SignInContext.Provider value={contextValue}>
