@@ -268,7 +268,18 @@ export default function Home() {
 	})
 
 	return (
-		<div className={styles.page}>
+		<div
+			className={styles.page}
+			style={{
+				position: 'fixed',
+				top: 0,
+				left: 0,
+				right: 0,
+				bottom: 0,
+				margin: 0,
+				padding: 0,
+			}}
+		>
 			{/* 
 			<header className={styles.header}>
 				<div className={styles.urlContainer}>
@@ -330,7 +341,18 @@ export default function Home() {
 			</header>
 			*/}
 
-			<main className={styles.main}>
+			<main
+				className={styles.main}
+				style={{
+					position: 'fixed',
+					top: 0,
+					left: 0,
+					right: 0,
+					bottom: 0,
+					margin: 0,
+					padding: 0,
+				}}
+			>
 				{/* 
 				{isModalOpen && channelUrl && (
 					<div
@@ -365,7 +387,18 @@ export default function Home() {
 					</div>
 				)}
 				*/}
-				<div className={styles.frameContainer}>
+				<div
+					className={styles.frameContainer}
+					style={{
+						position: 'fixed',
+						top: 0,
+						left: 0,
+						right: 0,
+						bottom: 0,
+						margin: 0,
+						padding: 0,
+					}}
+				>
 					{/* 
 					<div>
 						<h3>Frame Content</h3>
@@ -374,9 +407,18 @@ export default function Home() {
 					<iframe
 						ref={iframeRef}
 						src={frameUrl || DEFAULT_FRAME_URL}
-						width="424"
-						height="695"
-						className={styles.frameIframe}
+						style={{
+							position: 'absolute',
+							top: 0,
+							left: 0,
+							right: 0,
+							bottom: 0,
+							width: '100%',
+							height: '100%',
+							border: 'none',
+							margin: 0,
+							padding: 0,
+						}}
 						allow="microphone; camera; clipboard-write; web-share"
 						sandbox="allow-scripts allow-same-origin allow-popups"
 					/>
