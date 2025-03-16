@@ -269,6 +269,7 @@ export default function Home() {
 
 	return (
 		<div className={styles.page}>
+			{/* 
 			<header className={styles.header}>
 				<div className={styles.urlContainer}>
 					<input
@@ -327,8 +328,10 @@ export default function Home() {
 					)}
 				</div>
 			</header>
+			*/}
 
 			<main className={styles.main}>
+				{/* 
 				{isModalOpen && channelUrl && (
 					<div
 						className={styles.modalOverlay}
@@ -361,27 +364,26 @@ export default function Home() {
 						</div>
 					</div>
 				)}
+				*/}
 				<div className={styles.frameContainer}>
+					{/* 
 					<div>
 						<h3>Frame Content</h3>
 					</div>
-					{frameVisible && (
-						<div className={styles.frameWrapper}>
-							<h4>Frame Inner</h4>
-							<iframe
-								ref={iframeRef}
-								src={frameUrl || ''}
-								width="424"
-								height="695"
-								className={styles.frameIframe}
-								allow="microphone; camera; clipboard-write; web-share"
-								sandbox="allow-scripts allow-same-origin allow-popups"
-							/>
-						</div>
-					)}
+					*/}
+					<iframe
+						ref={iframeRef}
+						src={frameUrl || DEFAULT_FRAME_URL}
+						width="424"
+						height="695"
+						className={styles.frameIframe}
+						allow="microphone; camera; clipboard-write; web-share"
+						sandbox="allow-scripts allow-same-origin allow-popups"
+					/>
 				</div>
 			</main>
 
+			{/*
 			<footer className={styles.footer}>
 				<div className={styles.interactionButtons}>
 					<button onClick={handleAddFrame} className={styles.interactionButton}>
@@ -389,6 +391,7 @@ export default function Home() {
 					</button>
 				</div>
 			</footer>
+			*/}
 		</div>
 	)
 }
