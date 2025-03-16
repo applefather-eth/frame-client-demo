@@ -40,11 +40,12 @@ export default function Home() {
 	const [walletAddress, setWalletAddress] = useState('')
 	const [channelUrl, setChannelUrl] = useState<string | null>(null)
 	const [isModalOpen, setIsModalOpen] = useState(false)
+	// Initialize currentUser directly with a default FID that will be updated from URL params
 	const [currentUser, setCurrentUser] = useState<User>({
-		fid: fid || 0,
+		fid: 0, // Will be updated from URL params
 		username: 'test-user',
 		displayName: 'test',
-		pfpUrl: 'https://picsum.photos/200/300',
+		pfpUrl: 'https://picsum.photos/200/200',
 	})
 	const [endpoint, setEndpoint] = useState<HostEndpoint | undefined>(undefined)
 	const [debug] = useState(true)
@@ -53,14 +54,28 @@ export default function Home() {
 	const { data: hash, sendTransaction } = useSendTransaction()
 	const [isSignInComplete, setIsSignInComplete] = useState(false)
 
-	// Get URL from search parameters on component mount
+	// Get URL and FID from search parameters on component mount
 	useEffect(() => {
+		// Get domain parameter
 		const domain = searchParams.get('domain')
 		if (domain) {
 			setFrameUrl(`https://${domain}`)
 		} else {
 			setFrameUrl(DEFAULT_FRAME_URL)
 		}
+
+		// Get FID parameter
+		const fidParam = searchParams.get('fid')
+		const parsedFid =
+			fidParam && !isNaN(parseInt(fidParam)) ? parseInt(fidParam) : DEFAULT_FID
+
+		// Update both FID state and currentUser with the FID from params
+		setFid(parsedFid)
+		setCurrentUser((prev) => ({
+			...prev,
+			fid: parsedFid,
+		}))
+
 		// Automatically set frameVisible to true to load frame without clicking button
 		setFrameVisible(true)
 	}, [searchParams])
@@ -121,13 +136,6 @@ export default function Home() {
 			setEndpoint(newEndpoint)
 		}
 	}, [frameVisible, frameUrl, debug])
-
-	useEffect(() => {
-		setCurrentUser((prevUser) => ({
-			...prevUser,
-			fid: fid || 0,
-		}))
-	}, [fid])
 
 	const ready = useCallback(async () => {
 		if (endpoint) {
